@@ -66,6 +66,8 @@ public class ImsUt implements ImsUtInterface {
     private static final String TAG = "ImsUt";
     private static final boolean DBG = true;
 
+    private static final int SERVICE_CLASS_VOICE = (1 << 0);
+
     // For synchronization of private variables
     private Object mLockObj = new Object();
     private final IImsUt miUt;
@@ -147,14 +149,24 @@ public class ImsUt implements ImsUtInterface {
      */
     @Override
     public void queryCallForward(int condition, String number, Message result) {
+        queryCallForward(condition, number, SERVICE_CLASS_VOICE, result);
+    }
+
+    /**
+     * Retrieves the configuration of the call forward for specified service class.
+     * The return value of ((AsyncResult)result.obj) is an array of {@link ImsCallForwardInfo}.
+     */
+    @Override
+    public void queryCallForward(int condition, String number,
+            int serviceClass, Message result) {
         if (DBG) {
             log("queryCallForward :: Ut=" + miUt + ", condition=" + condition
-                    + ", number=" + number);
+                    + ", number=" + number + ", class=" + serviceClass);
         }
 
         synchronized(mLockObj) {
             try {
-                int id = miUt.queryCallForward(condition, number);
+                int id = miUt.queryCFForServiceClass(condition, number, serviceClass);
 
                 if (id < 0) {
                     sendFailureReport(result,
@@ -346,16 +358,16 @@ public class ImsUt implements ImsUtInterface {
      */
     @Override
     public void updateCallForward(int action, int condition, String number,
-            int timeSeconds, Message result) {
+            int serviceClass, int timeSeconds, Message result) {
         if (DBG) {
             log("updateCallForward :: Ut=" + miUt + ", action=" + action
                     + ", condition=" + condition + ", number=" + number
-                    + ", timeSeconds=" + timeSeconds);
+                    +  ", serviceClass=" + serviceClass + ", timeSeconds=" + timeSeconds);
         }
 
         synchronized(mLockObj) {
             try {
-                int id = miUt.updateCallForward(action, condition, number, timeSeconds);
+                int id = miUt.updateCallForward(action, condition, number, serviceClass, timeSeconds);
 
                 if (id < 0) {
                     sendFailureReport(result,
@@ -407,14 +419,15 @@ public class ImsUt implements ImsUtInterface {
      * Modifies the configuration of the call waiting.
      */
     @Override
-    public void updateCallWaiting(boolean enable, Message result) {
+    public void updateCallWaiting(boolean enable, int serviceClass, Message result) {
         if (DBG) {
-            log("updateCallWaiting :: Ut=" + miUt + ", enable=" + enable);
+            log("updateCallWaiting :: Ut=" + miUt + ", enable=" + enable
+            + ",serviceClass="  + serviceClass);
         }
 
         synchronized(mLockObj) {
             try {
-                int id = miUt.updateCallWaiting(enable);
+                int id = miUt.updateCallWaiting(enable, serviceClass);
 
                 if (id < 0) {
                     sendFailureReport(result,

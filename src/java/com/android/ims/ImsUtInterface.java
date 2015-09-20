@@ -115,6 +115,13 @@ public interface ImsUtInterface {
     public void queryCallForward(int condition, String number, Message result);
 
     /**
+     * Retrieves call forward for the specified service class
+     * The return value of ((AsyncResult)result.obj) is an array of {@link ImsCallForwardInfo}.
+     */
+    public void queryCallForward(int condition, String number,
+            int serviceClass, Message result);
+
+    /**
      * Retrieves the configuration of the call waiting.
      * The return value of ((AsyncResult)result.obj) is an array of {@link ImsSsInfo}.
      */
@@ -150,7 +157,7 @@ public interface ImsUtInterface {
      * Modifies the configuration of the call forward.
      */
     public void updateCallForward(int action, int condition, String number,
-            int timeSeconds, Message result);
+            int serviceClass, int timeSeconds, Message result);
 
     /**
      * Modifies the configuration of the call forward Timer
@@ -162,7 +169,7 @@ public interface ImsUtInterface {
     /**
      * Modifies the configuration of the call waiting.
      */
-    public void updateCallWaiting(boolean enable, Message result);
+    public void updateCallWaiting(boolean enable, int serviceClass, Message result);
 
     /**
      * Updates the configuration of the CLIR supplementary service.

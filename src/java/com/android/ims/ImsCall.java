@@ -376,6 +376,16 @@ public class ImsCall implements ICall {
         }
 
         /**
+         * Called when the call supp service is received
+         * The default implementation calls {@link #onCallStateChanged}.
+         *
+         * @param call the call object that carries out the IMS call
+         */
+        public void onCallSuppServiceReceived(ImsCall call,
+            ImsSuppServiceNotification suppServiceInfo) {
+        }
+
+        /**
          * Called when handover occurs from one access technology to another.
          *
          * @param session IMS session object
@@ -397,6 +407,15 @@ public class ImsCall implements ICall {
          */
         public void onCallHandoverFailed(ImsCall imsCall, int srcAccessTech, int targetAccessTech,
             ImsReasonInfo reasonInfo) {
+        }
+
+        /**
+         * Called when retry error is notified.
+         *
+         * @param session IMS session object
+         * @param reasonInfo
+         */
+        public void onCallRetryErrorReceived(ImsCall imsCall, ImsReasonInfo reasonInfo) {
         }
     }
 
@@ -2503,7 +2522,20 @@ public class ImsCall implements ICall {
             ImsCall neutralReferrer = (ImsCall) mCallGroup.getNeutralReferrer();
             if (neutralReferrer != null) {
                 mCallGroup.removeReferrer(neutralReferrer);
-                neutralReferrer.mCallGroup = null;
+                // We want to cleanup the neutral referrer's callgroup only if it is
+                // not already a conference call. So no cleanup is required for a
+                // 4-way conference merge failure.
+                if (!neutralReferrer.isMultiparty()) {
+                    if (DBG) {
+                        log("Setting neutral referrer's callgroup to null.");
+                    }
+                    neutralReferrer.mCallGroup = null;
+                } else {
+                    if (DBG) {
+                        log("Background call is a multiparty call with "
+                                + "other referrers, and should not be disturbed.");
+                    }
+                }
             }
             destroyCallGroup();
 
@@ -2854,6 +2886,35 @@ public class ImsCall implements ICall {
             }
         }
 
+        @Override
+        public void callSessionSuppServiceReceived(ImsCallSession session,
+                ImsSuppServiceNotification suppServiceInfo ) {
+            if (isTransientConferenceSession(session)) {
+                log("callSessionSuppServiceReceived :: not supported for transient conference"
+                        + " session=" + session);
+                return;
+            }
+
+            if (DBG) {
+                log("callSessionSuppServiceReceived :: session=" + session +
+                         ", suppServiceInfo" + suppServiceInfo);
+            }
+
+            ImsCall.Listener listener;
+
+            synchronized(ImsCall.this) {
+                listener = mListener;
+            }
+
+            if (listener != null) {
+                try {
+                    listener.onCallSuppServiceReceived(ImsCall.this, suppServiceInfo);
+                } catch (Throwable t) {
+                    loge("callSessionSuppServiceReceived :: ", t);
+                }
+            }
+        }
+
         public void callSessionHandover(ImsCallSession session, int srcAccessTech,
             int targetAccessTech, ImsReasonInfo reasonInfo) {
             if (DBG) {
@@ -2899,6 +2960,29 @@ public class ImsCall implements ICall {
                         reasonInfo);
                 } catch (Throwable t) {
                     loge("callSessionHandoverFailed :: ", t);
+                }
+            }
+        }
+
+        @Override
+        public void callSessionRetryErrorReceived(ImsCallSession session,
+                ImsReasonInfo reasonInfo) {
+            if (DBG) {
+                log("callSessionRetryErrorReceived :: session=" + session +
+                         ", reasonInfo " + reasonInfo);
+            }
+
+            ImsCall.Listener listener;
+
+            synchronized(ImsCall.this) {
+                listener = mListener;
+            }
+
+            if (listener != null) {
+                try {
+                    listener.onCallRetryErrorReceived(ImsCall.this, reasonInfo);
+                } catch (Throwable t) {
+                    loge("callSessionRetryErrorReceived :: ", t);
                 }
             }
         }
